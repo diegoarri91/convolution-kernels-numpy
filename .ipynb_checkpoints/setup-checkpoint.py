@@ -1,6 +1,6 @@
 from setuptools import setup
 
-setup(name='kernel',
+setup(name='convolution-kernels',
     version='0.1',
     url='https://github.com/diegoarri91/kernel',
     author='Diego M. Arribas',
