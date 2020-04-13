@@ -99,20 +99,16 @@ class Kernel:
         if mode == 'fft':
         
             full_convolution = fftconvolve(kernel_values, I, mode='full', axes=0)
-            # ME COSTO UN HUEVO LOGRAR LAS DOS LINEAS A CONTINUACION Y PARECE FUNCIONAR. NO TOCAR
-#            print(arg0, argf)
+#             print(argf - arg0, kernel_values.shape, I.shape, full_convolution.shape)
 
-            if arg0 < 0 and argf > 0 and arg0 + argf - 1 >= 0:
-                convolution[arg0 + argf - 1:, ...] = full_convolution[argf - 1:len(t) - arg0, ...]
-                # convolution[arg0 + argf - 1:, ...] = full_convolution[argf - 1:len(t) - arg0, ...]
-            elif arg0 >= 0 and argf > 0:
+            if arg0 >= 0:
                 convolution[arg0:, ...] = full_convolution[:len(t) - arg0, ...]
-            elif arg0 < 0:
-                #convolution[:len(t) + argf - 1, ...] = full_convolution[-argf + 1:len(t), ...]
-                convolution[:len(t) + arg0 + 1, ...] = full_convolution[-arg0:len(t) + 1, ...]
-            else:
-                return None
-            # NO TOCAR A MENOS QUE ESTE MUY SEGURO
+#             elif arg0 < 0 and len(t) - arg0 <= len(t) + argf - arg0:
+            elif arg0 < 0 and argf >= 0:
+                convolution = full_convolution[-arg0:len(t) - arg0, ...]
+#             elif arg0 < 0 and len(t) - arg0 > len(t) + argf - arg0:
+            elif arg0 < 0 and argf < 0:
+                convolution[:len(t) + argf, ...] = full_convolution[-arg0:, ...]
                 
         convolution *= dt
         

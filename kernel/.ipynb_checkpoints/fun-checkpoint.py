@@ -77,8 +77,11 @@ class KernelFun(Kernel):
 
         kwargs = {**{key: vals[None, :] for key, vals in self.basis_kwargs.items()}, **self.shared_kwargs}
 
+#         basis = self.fun(t[:argf, None], **kwargs).reshape(basis_shape)
+        
         for ii, arg in enumerate(arg_s):
             indices = tuple([slice(arg, None)] + [s[dim][ii] for dim in range(1, len(s))] + [slice(0, self.nbasis)])
+#             print(ii, self.nbasis, self.fun(t[arg:, None] - t[arg], **kwargs).shape)
             X[indices] += self.fun(t[arg:, None] - t[arg], **kwargs).reshape((len(t[arg:]), self.nbasis))
 
         return X
@@ -88,6 +91,13 @@ class KernelFun(Kernel):
         support = support if support is not None else [0, 10 * tau]
         return cls(fun=lambda t, tau: np.exp(-t / tau), basis_kwargs=dict(tau=np.array([tau])), support=support,
                    coefs=np.array([A]))
+    
+    @classmethod
+    def exponential(cls, tau, coefs=None, support=None):
+        coefs = coefs if coefs is not None else np.ones(len(tau))
+        support = support if support is not None else [0, 10 * np.max(tau)]
+        return cls(fun=lambda t, tau: np.exp(-t / tau), basis_kwargs=dict(tau=np.array(tau)), support=support,
+                   coefs=coefs)
 
 class KernelFun2(Kernel):
 

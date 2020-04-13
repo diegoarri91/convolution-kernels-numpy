@@ -87,9 +87,9 @@ class KernelRect(Kernel):
         arg0 = int(self.support[0] / dt)
         argf = int(np.ceil(self.support[1] / dt))
 
-        t_kernel = np.arange(arg0, argf, 1) * dt
+        t_kernel = np.arange(arg0, argf + 1, 1) * dt
         arg_bins = searchsorted(t_kernel, self.tbins)
-        print(arg_bins, len(t_kernel))
+#         print(arg_bins, len(t_kernel))
         X = np.zeros(I.shape + (self.nbasis, ))
 
 #         basis_shape = tuple([len(t)] + [1 for ii in range(I.ndim - 1)] + [self.nbasis])
@@ -100,18 +100,27 @@ class KernelRect(Kernel):
         for k, (_arg0, _argf) in enumerate(zip(arg_bins[:-1], arg_bins[1:])):
             basis[_arg0:_argf, ..., k] = 1.
 
-        X = fftconvolve(basis, I[..., None], mode='full', axes=0)
+        full_X = fftconvolve(basis, I[..., None], mode='full', axes=0)
         
-        if arg0 < 0 and argf > 0 and arg0 + argf - 1 >= 0:
-            print('a')
-            X[arg0 + argf - 1:, ...] = X[argf - 1:len(t) - arg0, ...] * dt
-        elif arg0 >= 0 and argf > 0:
-            X = X[:len(t), ...] * dt
-        elif arg0 < 0:
-            print('c')
-            print(arg0, argf)
-            X[:len(t) + arg0 + 1, ...] = X[-arg0:len(t) + 1, ...] * dt
+#         if arg0 < 0 and argf > 0 and arg0 + argf - 1 >= 0:
+#             print('a')
+#             X[arg0 + argf - 1:, ...] = X[argf - 1:len(t) - arg0, ...] * dt
+#         elif arg0 >= 0 and argf > 0:
+#             X = X[:len(t), ...] * dt
+#         elif arg0 < 0:
+#             print('c')
+#             print(arg0, argf)
+#             X[:len(t) + arg0 + 1, ...] = X[-arg0:len(t) + 1, ...] * dt
+            
+        if arg0 >= 0:
+            X[arg0:, ...] = full_X[:len(t) - arg0, ...]
+        elif arg0 < 0 and argf >= 0:
+            X = full_X[-arg0:len(t) - arg0, ...]
+        elif arg0 < 0 and argf < 0:
+            X[:len(t) + argf, ...] = full_X[-arg0:, ...]
 
+        X = X * dt
+            
         return X
 
     def convolve_basis_discrete(self, t, s, shape=None):
