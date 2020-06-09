@@ -107,7 +107,8 @@ class Kernel:
             elif arg0 < 0 and argf >= 0:
                 convolution = full_convolution[-arg0:len(t) - arg0, ...]
 #             elif arg0 < 0 and len(t) - arg0 > len(t) + argf - arg0:
-            elif arg0 < 0 and argf < 0:
+#             elif arg0 < 0 and argf < 0:
+            else:
                 convolution[:len(t) + argf, ...] = full_convolution[-arg0:, ...]
                 
         convolution *= dt

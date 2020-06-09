@@ -1,4 +1,7 @@
+.idea/
 .ipynb_checkpoints/
+.pytest_cache/
 /examples/.ipynb_checkpoints/
 /kernel/__pycache__/
 /kernel/.ipynb_checkpoints/
+

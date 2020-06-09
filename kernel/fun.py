@@ -87,15 +87,15 @@ class KernelFun(Kernel):
         return X
     
     @classmethod
-    def gaussian(cls, tau, A, support=None):
+    def gaussian(cls, tau, A, tm=0, support=None):
         coefs = np.array([A])
-        support = support if support is not None else [-5 * tau, 5 * tau]
-        return cls(fun=lambda t, tau: np.exp(-(t / tau)**2), basis_kwargs=dict(tau=np.array([tau])), 
+        support = support if support is not None else np.array([-5 * tau, 5 * tau]) + tm
+        return cls(fun=lambda t, tau: np.exp(-((t - tm) / tau)**2), basis_kwargs=dict(tau=np.array([tau])),
                    support=support, coefs=coefs)
 
     @classmethod
-    def gaussian_delta(cls, delta, support=None):
-        return cls.gaussian(np.sqrt(2) * delta, 1 / np.sqrt(2 * np.pi * delta ** 2), support=support)
+    def gaussian_delta(cls, delta, tm=0, support=None):
+        return cls.gaussian(np.sqrt(2) * delta, 1 / np.sqrt(2 * np.pi * delta ** 2), tm=tm, support=support)
     
     @classmethod
     def single_exponential(cls, tau, A=1, support=None):
