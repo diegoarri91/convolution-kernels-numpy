@@ -75,11 +75,13 @@ class Kernel:
     #     t_shape = (len(t_support), ) + tuple([1] * (ndim-1))
     #     self.values = self.interpolate(t_support).reshape(t_shape)
     
-    def convolve_continuous(self, t, I, mode='fft'):
-        
-        # Given a 1d-array t and an nd-array I with I.shape=(len(t),...) returns convolution,
-        # the convolution of the kernel with axis 0 of I for all other axis values
-        # so that convolution.shape = I.shape
+    def convolve_continuous(self, t, x, mode='fft'):
+        """
+        Implements convolution
+        """
+        # Given a 1d-array t and an nd-array x with x.shape=(len(t),...) returns convolution,
+        # the convolution of the kernel with axis 0 of x for all other axis values
+        # so that convolution.shape = x.shape
         
         dt = get_dt(t)
         arg0 = int(self.support[0] / dt)
@@ -91,15 +93,15 @@ class Kernel:
             t_support = np.arange(arg0, argf + 1, 1) * dt
             kernel_values = self.interpolate(t_support)
         
-        shape = (kernel_values.shape[0], ) + tuple([1] * (I.ndim-1))
+        shape = (kernel_values.shape[0], ) + tuple([1] * (x.ndim - 1))
         kernel_values = kernel_values.reshape(shape)
 
-        convolution = np.zeros(I.shape)
+        convolution = np.zeros(x.shape)
         
         if mode == 'fft':
         
-            full_convolution = fftconvolve(kernel_values, I, mode='full', axes=0)
-#             print(argf - arg0, kernel_values.shape, I.shape, full_convolution.shape)
+            full_convolution = fftconvolve(kernel_values, x, mode='full', axes=0)
+#             print(argf - arg0, kernel_values.shape, x.shape, full_convolution.shape)
 
             if arg0 >= 0:
                 convolution[arg0:, ...] = full_convolution[:len(t) - arg0, ...]
@@ -129,12 +131,12 @@ class Kernel:
 
         self.coefs = np.linalg.lstsq(X, v, rcond=None)[0]
         
-    # def deconvolve_continuous(self, t, I, mask=None):
+    # def deconvolve_continuous(self, t, x, mask=None):
     #
     #     if mask is None:
-    #         mask = np.ones(I.shape, dtype=bool)
+    #         mask = np.ones(x.shape, dtype=bool)
     #
-    #     X = self.convolve_basis_continuous(t, I)
+    #     X = self.convolve_basis_continuous(t, x)
     #     X = X[mask, :]
     #     v = v[mask]
     #
@@ -153,7 +155,7 @@ class Kernel:
             s = (s,)
             
         if A is None:
-            A = (1. for ii in range(s[0].size)) # Instead of creating the whole list/array in memory I use a generator
+            A = (1. for ii in range(s[0].size)) # Instead of creating the whole list/array in memory x use a generator
 
         if shape is None:
             # max(s[dim]) determines the size of each dimension

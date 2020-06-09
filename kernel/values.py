@@ -47,24 +47,24 @@ class KernelBasisValues(Kernel):
 #         kwargs = {**{key: vals[None, :] for key, vals in self.basis_kwargs.items()}, **self.shared_kwargs}
         return self.basis_values
 
-#     def convolve_basis_continuous(self, t, I):
-#         """# Given a 1d-array t and an nd-array I with I.shape=(len(t),...) returns X_te,
-#         # the convolution matrix of each rectangular function of the base with axis 0 of I for all other axis values
-#         # so that X_te.shape = (I.shape, nbasis)
-#         # Discrete convolution can be achieved by using an I with 1/dt on the correct timing values
+#     def convolve_basis_continuous(self, t, x):
+#         """# Given a 1d-array t and an nd-array x with x.shape=(len(t),...) returns X_te,
+#         # the convolution matrix of each rectangular function of the base with axis 0 of x for all other axis values
+#         # so that X_te.shape = (x.shape, nbasis)
+#         # Discrete convolution can be achieved by using an x with 1/dt on the correct timing values
 #         Assumes sorted t"""
 
 #         dt = get_dt(t)
 #         arg0, argf = searchsorted(t, self.support)
-#         X = np.zeros(I.shape + (self.nbasis, ))
+#         X = np.zeros(x.shape + (self.nbasis, ))
 
-#         basis_shape = tuple([argf] + [1 for ii in range(I.ndim - 1)] + [self.nbasis])
+#         basis_shape = tuple([argf] + [1 for ii in range(x.ndim - 1)] + [self.nbasis])
 #         # basis = np.zeros(basis_shape)
 #         # kwargs = {self.key_par: self.vals_par[None, :], **self.shared_kwargs}
 #         kwargs = {**{key: vals[None, :] for key, vals in self.basis_kwargs.items()}, **self.shared_kwargs}
 #         basis = self.fun(t[:argf, None], **kwargs).reshape(basis_shape)
 
-#         X = fftconvolve(basis, I[..., None], axes=0)
+#         X = fftconvolve(basis, x[..., None], axes=0)
 #         X = X[:len(t), ...] * dt
 
 #         return X
