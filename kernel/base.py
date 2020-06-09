@@ -129,16 +129,16 @@ class Kernel:
 
         self.coefs = np.linalg.lstsq(X, v, rcond=None)[0]
         
-    def deconvolve_continuous(self, t, x_ker, mask=None):
-
-        if mask is None:
-            mask = np.ones(I.shape, dtype=bool)
-
-        X = self.convolve_basis_continuous(t, I)
-        X = X[mask, :]
-        v = v[mask]
-
-        self.coefs = np.linalg.lstsq(X, v, rcond=None)[0]
+    # def deconvolve_continuous(self, t, I, mask=None):
+    #
+    #     if mask is None:
+    #         mask = np.ones(I.shape, dtype=bool)
+    #
+    #     X = self.convolve_basis_continuous(t, I)
+    #     X = X[mask, :]
+    #     v = v[mask]
+    #
+    #     self.coefs = np.linalg.lstsq(X, v, rcond=None)[0]
 
     def convolve_discrete(self, t, s, A=None, shape=None):
         
