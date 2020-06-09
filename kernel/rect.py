@@ -77,10 +77,10 @@ class KernelRect(Kernel):
         return cls(tbins, coefs=A * np.exp(-tbins[:-1] / tau), prior=prior, prior_pars=prior_pars)
 
     def convolve_basis_continuous(self, t, I):
-        """# Given a 1d-array t and an nd-array I with I.shape=(len(t),...) returns X,
-        # the convolution matrix of each rectangular function of the base with axis 0 of I for all other axis values
-        # so that X.shape = (I.shape, nbasis)
-        # Discrete convolution can be achieved by using an I with 1/dt on the correct timing values
+        """# Given a 1d-array t and an nd-array x with x.shape=(len(t),...) returns X,
+        # the convolution matrix of each rectangular function of the base with axis 0 of x for all other axis values
+        # so that X.shape = (x.shape, nbasis)
+        # Discrete convolution can be achieved by using an x with 1/dt on the correct timing values
         Assumes sorted t"""
 
         dt = get_dt(t)
@@ -92,7 +92,7 @@ class KernelRect(Kernel):
 #         print(arg_bins, len(t_kernel))
         X = np.zeros(I.shape + (self.nbasis, ))
 
-#         basis_shape = tuple([len(t)] + [1 for ii in range(I.ndim - 1)] + [self.nbasis])
+#         basis_shape = tuple([len(t)] + [1 for ii in range(x.ndim - 1)] + [self.nbasis])
 #         basis = np.zeros(basis_shape)
         basis_shape = tuple([len(t_kernel)] + [1 for ii in range(I.ndim - 1)] + [self.nbasis])
         basis = np.zeros(basis_shape)
