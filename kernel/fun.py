@@ -28,6 +28,7 @@ class KernelFun(Kernel):
 
     def interpolate(self, t):
         # kwargs = {self.key_par: self.vals_par[None, :], **self.shared_kwargs}
+        # TODO: ADD SUPPORT. OUTSIDE OF SUPPORT EVERYTHING SHOULD BE 0
         kwargs = {**{key:vals[None, :] for key, vals in self.basis_kwargs.items()}, **self.shared_kwargs}
         return np.sum(self.coefs[None, :] * self.fun(t[:, None], **kwargs), 1)
 
