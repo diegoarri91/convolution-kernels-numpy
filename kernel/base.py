@@ -142,7 +142,7 @@ class Kernel:
     #
     #     self.coefs = np.linalg.lstsq(X, v, rcond=None)[0]
 
-    def convolve_discrete(self, t, s, A=None, shape=None):
+    def convolve_discrete(self, t, s, A=None, shape=None, renewal=False):
         
         # Given a 1d-array t and a tuple of 1d-arrays s=(tjs, shape) containing timings in the
         # first 1darray of the tuple returns the convolution of the kernels with the timings
@@ -169,7 +169,10 @@ class Kernel:
         for ii, (arg, A) in enumerate(zip(arg_s, A)):
 
             index = tuple([slice(arg, None)] + [s[dim][ii] for dim in range(1, len(s))])
-            convolution[index] += A * self.interpolate(t[arg:] - t[arg])
+            if not(renewal):
+                convolution[index] += A * self.interpolate(t[arg:] - t[arg])
+            else:
+                convolution[index] = A * self.interpolate(t[arg:] - t[arg])
                 
         return convolution
 
