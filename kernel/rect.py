@@ -47,6 +47,16 @@ class KernelRect(Kernel):
     def area(self, dt=None):
         return np.sum(self.coefs * np.diff(self.tbins))
 
+    def interpolate_basis(self, t):
+
+        arg_bins = searchsorted(t, self.tbins, side='left')
+        res = np.zeros((len(t), self.nbasis))
+
+        for k, (arg0, argf) in enumerate(zip(arg_bins[:-1], arg_bins[1:])):
+            res[arg0:argf, k] = 1.
+
+        return res
+
     def plot_basis(self, t, ax=None):
 
         if ax is None:
