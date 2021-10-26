@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.signal import fftconvolve
+from scipy.signal import convolve, fftconvolve
 
 from .utils import get_dt, searchsorted
 
@@ -13,12 +13,8 @@ class Kernel:
         self.fix_values = False
         self.values = None
 
-    def interpolate(self, t):
+    def evaluate(self, t):
         pass
-
-    # def get_KernelValues(self, t):
-    #     kernel_values = self.interpolate(t)
-    #     return KernelValues(values=kernel_values, support=self.support)
 
     def plot(self, t=None, ax=None, offset=0, invert_t=False, invert_values=False, exp_values=False,  **kwargs):
 
@@ -30,7 +26,7 @@ class Kernel:
             figsize = kwargs.get('figsize', (8, 5) )
             fig, ax = plt.subplots(figsize = figsize)
 
-        y = self.interpolate(t) + offset
+        y = self.evaluate(t) + offset
         if invert_t:
             t = -t
         if invert_values:
@@ -51,7 +47,7 @@ class Kernel:
             figsize = kwargs.get('figsize', (12, 5) );
             fig, axs = plt.subplots(figsize = figsize, ncols = 3);
             
-        y = self.interpolate(t)
+        y = self.evaluate(t)
         axs[0].plot(t, y)
         axs[1].plot(t, y)
         axs[1].set_yscale('log')
@@ -64,34 +60,25 @@ class Kernel:
         arg0 = int(self.support[0] / dt)
         argf = int(np.ceil(self.support[1] / dt))
         t_support = np.arange(arg0, argf + 1, 1) * dt
-        self.values = self.interpolate(t_support)
+        self.values = self.evaluate(t_support)
         return self
-
-    # def set_values(self, dt, ndim):
-    #     arg0 = int(self.support[0] / dt)
-    #     argf = int(np.ceil(self.support[1] / dt))
-    #
-    #     t_support = np.arange(arg0, argf + 1, 1) * dt
-    #     t_shape = (len(t_support), ) + tuple([1] * (ndim-1))
-    #     self.values = self.interpolate(t_support).reshape(t_shape)
     
     def convolve_continuous(self, t, x, mode='fft'):
         """
-        Implements convolution
+        Implements the convolution of signal x with the kernel. Given a 1d-array t and an nd-array x with
+        x.shape=(len(t),...) returns convolution, the convolution of the kernel with axis 0 of x for all other axis
+        values so that convolution.shape = x.shape
         """
-        # Given a 1d-array t and an nd-array x with x.shape=(len(t),...) returns convolution,
-        # the convolution of the kernel with axis 0 of x for all other axis values
-        # so that convolution.shape = x.shape
         
         dt = get_dt(t)
-        arg0 = int(self.support[0] / dt)
-        argf = int(np.ceil(self.support[1] / dt))
+        support_start = int(self.support[0] / dt)
+        support_end = int(np.ceil(self.support[1] / dt))
 
         if isinstance(self, KernelValues):
             kernel_values = self.values
         else:
-            t_support = np.arange(arg0, argf + 1, 1) * dt
-            kernel_values = self.interpolate(t_support)
+            t_support = np.arange(support_start, support_end, 1) * dt
+            kernel_values = self.evaluate(t_support)
         
         shape = (kernel_values.shape[0], ) + tuple([1] * (x.ndim - 1))
         kernel_values = kernel_values.reshape(shape)
@@ -99,19 +86,17 @@ class Kernel:
         convolution = np.zeros(x.shape)
         
         if mode == 'fft':
-        
             full_convolution = fftconvolve(kernel_values, x, mode='full', axes=0)
-#             print(argf - arg0, kernel_values.shape, x.shape, full_convolution.shape)
+        else:
+            raise NotImplementedError
 
-            if arg0 >= 0:
-                convolution[arg0:, ...] = full_convolution[:len(t) - arg0, ...]
-#             elif arg0 < 0 and len(t) - arg0 <= len(t) + argf - arg0:
-            elif arg0 < 0 and argf >= 0:
-                convolution = full_convolution[-arg0:len(t) - arg0, ...]
-#             elif arg0 < 0 and len(t) - arg0 > len(t) + argf - arg0:
-#             elif arg0 < 0 and argf < 0:
-            else:
-                convolution[:len(t) + argf, ...] = full_convolution[-arg0:, ...]
+        if support_start >= 0:
+            convolution[support_start:, ...] = full_convolution[:len(t) - support_start, ...]
+        elif support_start < 0 <= support_end:  # = to elif support_start < 0 and len(t) - support_start <= len(t) + support_end - support_start:
+            convolution = full_convolution[-support_start:len(t) - support_start, ...]
+            # convolution = full_convolution[-support_start:len(t) - support_start, ...]
+        else:  # = to elif support_start < 0 and len(t) - support_start > len(t) + support_end - support_start:
+            convolution[:len(t) + support_end, ...] = full_convolution[-support_end:, ...]
                 
         convolution *= dt
         
@@ -130,26 +115,14 @@ class Kernel:
         v = v[mask]
 
         self.coefs = np.linalg.lstsq(X, v, rcond=None)[0]
-        
-    # def deconvolve_continuous(self, t, x, mask=None):
-    #
-    #     if mask is None:
-    #         mask = np.ones(x.shape, dtype=bool)
-    #
-    #     X = self.convolve_basis_continuous(t, x)
-    #     X = X[mask, :]
-    #     v = v[mask]
-    #
-    #     self.coefs = np.linalg.lstsq(X, v, rcond=None)[0]
 
     def convolve_discrete(self, t, s, A=None, shape=None, renewal=False):
-        
-        # Given a 1d-array t and a tuple of 1d-arrays s=(tjs, shape) containing timings in the
-        # first 1darray of the tuple returns the convolution of the kernels with the timings
-        # the convolution of the kernel with the timings. conv.ndim = s.ndim and
-        # conv.shape = (len(t), max of the array(accross each dimension))
-        # A is used as convolution weights. A=(A) with len(A)=len(s[0]).
-        # Assumes kernel is only defined on t >= 0
+        """
+        Given a 1d-array t and a tuple of 1d-arrays s=(tjs, shape) containing timings in the first 1darray of the tuple
+        returns the convolution of the kernels with the timings the convolution of the kernel with the timings.
+        conv.ndim = s.ndim and conv.shape = (len(t), max of the array (accross each dimension)
+        A is used as convolution weights. A=(A) with len(A)=len(s[0]). Assumes kernel is only defined on t >= 0
+        """
         
         if type(s) is not tuple:
             s = (s,)
@@ -170,14 +143,15 @@ class Kernel:
 
             index = tuple([slice(arg, None)] + [s[dim][ii] for dim in range(1, len(s))])
             if not(renewal):
-                convolution[index] += A * self.interpolate(t[arg:] - t[arg])
+                convolution[index] += A * self.evaluate(t[arg:] - t[arg])
             else:
-                convolution[index] = A * self.interpolate(t[arg:] - t[arg])
+                convolution[index] = A * self.evaluate(t[arg:] - t[arg])
                 
         return convolution
 
 class KernelValues(Kernel):
 
     def __init__(self, values=None, support=None):
+        super(KernelValues, self).__init__()
         self.values = values
         self.support = np.array(support)

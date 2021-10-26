@@ -17,25 +17,34 @@ class KernelFun(Kernel):
         self.nbasis = len(list(self.basis_kwargs.values())[0])
         self.coefs = np.array(coefs) if coefs is not None else np.ones(self.nbasis)
 
+    def area(self, dt):
+        return np.sum(self.evaluate(np.arange(self.support[0], self.support[1] + dt, dt))) * dt
+
     def copy(self):
         kernel = KernelFun(self.fun, basis_kwargs=self.basis_kwargs.copy(),
                               shared_kwargs=self.shared_kwargs.copy(), support=self.support.copy(),
                               coefs=self.coefs.copy(), prior=self.prior, prior_pars=self.prior_pars.copy())
         return kernel
 
-    def area(self, dt):
-        return np.sum(self.interpolate(np.arange(self.support[0], self.support[1] + dt, dt))) * dt
+    def evaluate(self, t):
+        basis_values = self.evaluate_basis(t)
+        return np.sum(self.coefs[None, :] * basis_values, 1)
 
-    def interpolate(self, t):
-        # kwargs = {self.key_par: self.vals_par[None, :], **self.shared_kwargs}
-        # TODO: ADD SUPPORT. OUTSIDE OF SUPPORT EVERYTHING SHOULD BE 0
-        kwargs = {**{key:vals[None, :] for key, vals in self.basis_kwargs.items()}, **self.shared_kwargs}
-        return np.sum(self.coefs[None, :] * self.fun(t[:, None], **kwargs), 1)
-
-    def interpolate_basis(self, t):
-        # kwargs = {self.key_par: self.vals_par[None, :], **self.shared_kwargs}
+    def evaluate_basis(self, t):
         kwargs = {**{key: vals[None, :] for key, vals in self.basis_kwargs.items()}, **self.shared_kwargs}
-        return self.fun(t[:, None], **kwargs)
+        basis_values = self.fun(t[:, None], **kwargs)
+
+        dt = get_dt(t)
+        support_start = int((self.support[0] - t[0]) / dt)
+        support_end = int(np.ceil((self.support[1] - t[0]) / dt))
+        print(support_end, len(t))
+
+        if support_start > 0:
+            basis_values = basis_values[support_start:]
+        if support_end < len(t):
+            basis_values = basis_values[:-(len(t) - support_end)]
+
+        return basis_values
 
     def convolve_basis_continuous(self, t, I):
         """# Given a 1d-array t and an nd-array x with x.shape=(len(t),...) returns X_te,
@@ -67,7 +76,6 @@ class KernelFun(Kernel):
         arg_s = searchsorted(t, s[0])
         arg_s = np.atleast_1d(arg_s)
         arg0, argf = searchsorted(t, self.support)
-        # print(argf)
 
         if shape is None:
             shape = tuple([len(t)] + [max(s[dim]) + 1 for dim in range(1, len(s))] + [self.nbasis])
@@ -77,12 +85,10 @@ class KernelFun(Kernel):
         X = np.zeros(shape)
 
         kwargs = {**{key: vals[None, :] for key, vals in self.basis_kwargs.items()}, **self.shared_kwargs}
-
 #         basis = self.fun(t[:argf, None], **kwargs).reshape(basis_shape)
         
         for ii, arg in enumerate(arg_s):
             indices = tuple([slice(arg, None)] + [s[dim][ii] for dim in range(1, len(s))] + [slice(0, self.nbasis)])
-#             print(ii, self.nbasis, self.fun(t[arg:, None] - t[arg], **kwargs).shape)
             X[indices] += self.fun(t[arg:, None] - t[arg], **kwargs).reshape((len(t[arg:]), self.nbasis))
 
         return X
@@ -97,7 +103,7 @@ class KernelFun(Kernel):
     @classmethod
     def gaussian_delta(cls, delta, tm=0, support=None):
         return cls.gaussian(np.sqrt(2) * delta, 1 / np.sqrt(2 * np.pi * delta ** 2), tm=tm, support=support)
-    
+
     @classmethod
     def single_exponential(cls, tau, A=1, support=None):
         support = support if support is not None else [0, 10 * tau]
@@ -110,31 +116,3 @@ class KernelFun(Kernel):
         support = support if support is not None else [0, 10 * np.max(tau)]
         return cls(fun=lambda t, tau: np.exp(-t / tau), basis_kwargs=dict(tau=np.array(tau)), support=support,
                    coefs=coefs)
-
-class KernelFun2(Kernel):
-
-    def __init__(self, fun=None, pars=None, support=None):
-        self.fun = fun
-        self.pars = pars
-        self.support = np.array(support)
-        self.values = None
-
-    def interpolate(self, t):
-        return self.fun(t, *self.pars)
-
-    def area(self, dt):
-        return np.sum(self.interpolate(np.arange(self.support[0], self.support[1] + dt, dt))) * dt
-
-    @classmethod
-    def exponential(cls, tau, A, support=None):
-        if support is None:
-            support = [0, 10 * tau]
-        return cls(fun=lambda t, tau, A: A * np.exp(-t / tau), pars=[tau, A], support=support)
-
-    @classmethod
-    def gaussian(cls, tau, A):
-        return cls(fun=lambda t, tau, A: A * np.exp(-(t / tau)**2.), pars=[tau, A], support=[-5 * tau, 5 * tau + .1])
-
-    @classmethod
-    def gaussian_delta(cls, delta):
-        return cls.gaussian(np.sqrt(2.) * delta, 1. / np.sqrt(2. * np.pi * delta ** 2.))

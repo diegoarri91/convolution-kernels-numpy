@@ -21,7 +21,7 @@ class KernelBasisValues(Kernel):
                                    prior=self.prior, prior_pars=self.prior_pars.copy())
         return kernel
 
-    def interpolate(self, t):
+    def evaluate(self, t):
 
 #         assert np.isclose(self.dt, get_dt(t))
 

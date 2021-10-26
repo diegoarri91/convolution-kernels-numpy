@@ -17,7 +17,7 @@ class KernelRect(Kernel):
         self.prior = prior
         self.prior_pars = np.array(prior_pars)
 
-    def interpolate(self, t, sorted_t=True):
+    def evaluate(self, t, sorted_t=True):
 
         if sorted_t:
             res = self.interpolate_sorted(t)
